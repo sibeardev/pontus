@@ -1,5 +1,6 @@
 import logging.config
 import os
+from re import match
 
 import redis
 from dotenv import load_dotenv
@@ -138,6 +139,8 @@ def show_cart(context: CallbackContext, update: Update):
                 )
             ]
         )
+    if keyboard:
+        keyboard.append([InlineKeyboardButton('Pay', callback_data='pay')])
     keyboard.append([InlineKeyboardButton('🐟 Menu', callback_data='menu')])
     reply_markup = InlineKeyboardMarkup(keyboard)
     cost = get_total_cost_cart(access_token, user_id)
@@ -163,6 +166,12 @@ def handle_cart(context: CallbackContext, update: Update):
             message_id=query.message.message_id
         )
         return 'HANDLE_MENU'
+    elif query.data == 'pay':
+        context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text='Please send me your email. Our staff will contact you.'
+        )
+        return 'WAITING_EMAIL'
     else:
         access_token = context.bot_data.get('access_token')
         user_id = query.from_user.id
@@ -181,10 +190,27 @@ def handle_cart(context: CallbackContext, update: Update):
         )
         context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text=f'Fish removed from cart',
+            text='Fish removed from cart',
             reply_markup=reply_markup
         )
         return 'HANDLE_MENU'
+
+
+def waiting_email(context: CallbackContext, update: Update):
+    message = update.message
+    user_mail = message.text
+    pattern = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+    if match(pattern, user_mail) is None:
+        context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text='Incorrect email. Try again'
+        )
+        return 'WAITING_EMAIL'
+    user_name = message.from_user.first_name
+    user_id = message.chat_id
+    user_login = message.from_user.username
+    
+    return 'HANDLE_MENU'
 
 
 def handle_users_reply(update: Update, context: CallbackContext):
@@ -205,7 +231,8 @@ def handle_users_reply(update: Update, context: CallbackContext):
         'START': start,
         'HANDLE_MENU': handle_menu,
         'HANDLE_DESCRIPTION': handle_description,
-        'HANDLE_CART': handle_cart
+        'HANDLE_CART': handle_cart,
+        'WAITING_EMAIL': waiting_email,
     }
     state_handler = states_functions[user_state]
     try:
