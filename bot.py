@@ -4,13 +4,14 @@ from re import match
 
 import redis
 from dotenv import load_dotenv
+from requests import HTTPError
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (CallbackContext, CallbackQueryHandler,
                           CommandHandler, Filters, MessageHandler, Updater)
 
-from cms import (add_product_to_cart, get_access_token, get_cart_items,
-                 get_product_detail, get_products, get_total_cost_cart,
-                 remove_product_from_cart)
+from cms import (add_product_to_cart, create_customer, get_access_token,
+                 get_cart_items, get_customer, get_product_detail,
+                 get_products, get_total_cost_cart, remove_product_from_cart)
 from log_config import LOGGING_CONFIG, TelegramLogsHandler
 
 logger = logging.getLogger(__file__)
@@ -122,10 +123,10 @@ def show_cart(context: CallbackContext, update: Update):
     access_token = context.bot_data.get('access_token')
     query = update.callback_query
     user_id = query.from_user.id
-    text = 'Your cart:\n\n'
+    cart_text = 'Your cart:\n\n'
     keyboard = []
     for product in get_cart_items(access_token, user_id):
-        text += (
+        cart_text += (
             f"{product.get('name')}\n"
             f"{product.get('price')} per kg\n"
             f"{product.get('quantity')}kg in cart "
@@ -143,15 +144,15 @@ def show_cart(context: CallbackContext, update: Update):
         keyboard.append([InlineKeyboardButton('Pay', callback_data='pay')])
     keyboard.append([InlineKeyboardButton('🐟 Menu', callback_data='menu')])
     reply_markup = InlineKeyboardMarkup(keyboard)
-    cost = get_total_cost_cart(access_token, user_id)
-    text += f'Total: {cost}'
+    cart_text += f'Total: {get_total_cost_cart(access_token, user_id)}'
+    context.user_data['cart'] = cart_text
     context.bot.delete_message(
         chat_id=update.effective_chat.id,
         message_id=query.message.message_id
     )
     context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=text,
+        text=cart_text,
         reply_markup=reply_markup
     )
     return 'HANDLE_CART'
@@ -198,18 +199,36 @@ def handle_cart(context: CallbackContext, update: Update):
 
 def waiting_email(context: CallbackContext, update: Update):
     message = update.message
-    user_mail = message.text
+    user_email = message.text
     pattern = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
-    if match(pattern, user_mail) is None:
+    if match(pattern, user_email) is None:
         context.bot.send_message(
             chat_id=update.effective_chat.id,
             text='Incorrect email. Try again'
         )
         return 'WAITING_EMAIL'
     user_name = message.from_user.first_name
-    user_id = message.chat_id
-    user_login = message.from_user.username
-    
+    admin_id = context.bot_data.get('chat_id')
+    access_token = context.bot_data.get('access_token')
+    try:
+        create_customer(access_token, user_name, user_email)
+    except HTTPError:
+        welcome_text = 'Good to see you again!'
+    else:
+        welcome_text = 'Congratulations on your first order!'
+    text = f'New Order\n\n{user_name}\n{user_email}\n\n'
+    text += context.user_data.get('cart')
+    context.bot.send_message(
+        chat_id=admin_id,
+        text=text,
+    )
+    successful_text = welcome_text + (
+        f'\nThank you for your order. Our manager will contact you soon'
+    )
+    context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=successful_text,
+    )
     return 'HANDLE_MENU'
 
 
@@ -270,6 +289,7 @@ def main():
     updater = Updater(token=telegram_token, use_context=True)
     dispatcher = updater.dispatcher
     dispatcher.bot_data['access_token'] = access_token
+    dispatcher.bot_data['chat_id'] = chat_id
 
     dispatcher.add_handler(CallbackQueryHandler(handle_users_reply))
     dispatcher.add_handler(MessageHandler(Filters.text, handle_users_reply))

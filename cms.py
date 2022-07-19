@@ -112,3 +112,35 @@ def remove_product_from_cart(access_token, cart_name, product_id):
     headers = {'Authorization': f'Bearer {access_token}'}
     response = requests.delete(url, headers=headers)
     response.raise_for_status()
+
+
+def create_customer(access_token, name, email):
+    url = 'https://api.moltin.com/v2/customers'
+    headers = {
+        'Authorization': f'Bearer {access_token}'
+    }
+    payload = {
+        'data': {
+            'type': 'customer',
+            'name': name,
+            'email': email,
+        },
+    }
+    response = requests.post(url, headers=headers, json=payload)
+    check_duplicate_email(response.json())
+    response.raise_for_status()
+
+
+def check_duplicate_email(response):
+    if response.get('errors'):
+        for error in response.get('errors'):
+            if error.get('title') == 'Duplicate email':
+                raise requests.HTTPError
+
+
+def get_customer(access_token, customer_id):
+    url = f'https://api.moltin.com/v2/customers/{customer_id}'
+    headers = {'Authorization': f'Bearer {access_token}'}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    return response.json().get('data')
