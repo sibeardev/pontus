@@ -172,6 +172,10 @@ def handle_cart(context: CallbackContext, update: Update):
             chat_id=update.effective_chat.id,
             text='Please send me your email. Our staff will contact you.'
         )
+        context.bot.delete_message(
+            chat_id=update.effective_chat.id,
+            message_id=query.message.message_id
+        )
         return 'WAITING_EMAIL'
     else:
         access_token = context.bot_data.get('access_token')
@@ -218,18 +222,21 @@ def waiting_email(context: CallbackContext, update: Update):
         welcome_text = 'Congratulations on your first order!'
     text = f'New Order\n\n{user_name}\n{user_email}\n\n'
     text += context.user_data.get('cart')
-    context.bot.send_message(
-        chat_id=admin_id,
-        text=text,
-    )
+    keyboard = [[InlineKeyboardButton('🐟 Menu', callback_data='menu')]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
     successful_text = welcome_text + (
         f'\nThank you for your order. Our manager will contact you soon'
     )
     context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=successful_text,
+        reply_markup=reply_markup
     )
-    return 'HANDLE_MENU'
+    context.bot.send_message(
+        chat_id=admin_id,
+        text=text,
+    )
+    return 'START'
 
 
 def handle_users_reply(update: Update, context: CallbackContext):
