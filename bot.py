@@ -123,7 +123,7 @@ def show_cart(context: CallbackContext, update: Update):
     access_token = context.bot_data.get('access_token')
     query = update.callback_query
     user_id = query.from_user.id
-    cart_text = 'Your cart:\n\n'
+    cart_text = 'Сart:\n\n'
     keyboard = []
     for product in get_cart_items(access_token, user_id):
         cart_text += (
