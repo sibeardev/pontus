@@ -6,7 +6,7 @@ Telegram store bot. Based on the [CMS Moltin](https://www.elasticpath.com/). The
 
 ## Screenshots
 
-![App Screenshot](https://dvmn.org/filer/canonical/1569215892/326/)
+![App Screenshot](https://github.com/dad-siberian/pontus/blob/main/raw/pontus.gif)
 
 ## Environment Variables
 
