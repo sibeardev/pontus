@@ -204,6 +204,7 @@ def handle_cart(context: CallbackContext, update: Update):
 def waiting_email(context: CallbackContext, update: Update):
     message = update.message
     user_email = message.text
+    # https://ru.stackoverflow.com/a/1309746
     pattern = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
     if match(pattern, user_email) is None:
         context.bot.send_message(
