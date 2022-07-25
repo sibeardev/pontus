@@ -7,16 +7,19 @@ from log_config import LOGGING_CONFIG
 logger = logging.getLogger(__file__)
 
 
-def get_access_token(client_id, cms_client_secret):
+def get_access_token(context):
+    cms_client_id = context.bot_data.get('cms_client_id')
+    cms_client_secret = context.bot_data.get('cms_client_secret')
     url = 'https://api.moltin.com/oauth/access_token'
     data = {
-        'client_id': client_id,
+        'client_id': cms_client_id,
         'client_secret': cms_client_secret,
         'grant_type': 'client_credentials',
     }
     response = requests.post(url, data=data)
     response.raise_for_status()
-    return response.json().get('access_token')
+    context.bot_data['access_token'] = response.json().get('access_token')
+    logger.info('ACCESS TOKEN')
 
 
 def get_products(access_token):
@@ -135,7 +138,7 @@ def check_duplicate_email(response):
     if response.get('errors'):
         for error in response.get('errors'):
             if error.get('title') == 'Duplicate email':
-                raise requests.HTTPError
+                raise FileExistsError
 
 
 def get_customer(access_token, customer_id):

@@ -217,7 +217,7 @@ def waiting_email(context: CallbackContext, update: Update):
     access_token = context.bot_data.get('access_token')
     try:
         create_customer(access_token, user_name, user_email)
-    except HTTPError:
+    except FileExistsError:
         welcome_text = 'Good to see you again!'
     else:
         welcome_text = 'Congratulations on your first order!'
@@ -289,22 +289,21 @@ def main():
     chat_id = os.getenv('TG_CHAT_ID')
     cms_client_id = os.getenv('MOLTIN_CLIENT_ID')
     cms_client_secret = os.getenv('MOLTIN_CLIENT_SECRET')
-    access_token = get_access_token(cms_client_id, cms_client_secret)
-
     logging.config.dictConfig(LOGGING_CONFIG)
     logger.addHandler(TelegramLogsHandler(telegram_token, chat_id))
-
     updater = Updater(token=telegram_token, use_context=True)
     dispatcher = updater.dispatcher
-    dispatcher.bot_data['access_token'] = access_token
+    dispatcher.bot_data['cms_client_secret'] = cms_client_secret
+    dispatcher.bot_data['cms_client_id'] = cms_client_id
     dispatcher.bot_data['chat_id'] = chat_id
-
+    job_queue = updater.job_queue
     dispatcher.add_handler(CallbackQueryHandler(handle_users_reply))
     dispatcher.add_handler(MessageHandler(Filters.text, handle_users_reply))
     dispatcher.add_handler(CommandHandler('start', handle_users_reply))
-
+    job_queue.run_repeating(get_access_token, interval=1800, first=1)
     logger.info('The Telegram Bot is running')
     updater.start_polling()
+    updater.idle()
 
 
 if __name__ == '__main__':
