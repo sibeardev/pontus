@@ -1,6 +1,7 @@
 import logging.config
 import os
 from re import match
+from textwrap import dedent
 
 import redis
 from dotenv import load_dotenv
@@ -123,15 +124,14 @@ def show_cart(context: CallbackContext, update: Update):
     access_token = context.bot_data.get('access_token')
     query = update.callback_query
     user_id = query.from_user.id
-    cart_text = 'Сart:\n\n'
+    cart_text = 'Сart:\n'
     keyboard = []
     for product in get_cart_items(access_token, user_id):
-        cart_text += (
-            f"{product.get('name')}\n"
-            f"{product.get('price')} per kg\n"
-            f"{product.get('quantity')}kg in cart "
-            f"for {product.get('cost')}\n\n"
-        )
+        cart_text += dedent(f"""
+            {product.get('name')}
+            {product.get('price')} per kg
+            {product.get('quantity')}kg in cart for {product.get('cost')}
+        """)
         keyboard.append(
             [
                 InlineKeyboardButton(
@@ -144,7 +144,7 @@ def show_cart(context: CallbackContext, update: Update):
         keyboard.append([InlineKeyboardButton('Pay', callback_data='pay')])
     keyboard.append([InlineKeyboardButton('🐟 Menu', callback_data='menu')])
     reply_markup = InlineKeyboardMarkup(keyboard)
-    cart_text += f'Total: {get_total_cost_cart(access_token, user_id)}'
+    cart_text += f'\nTotal: {get_total_cost_cart(access_token, user_id)}'
     context.user_data['cart'] = cart_text
     context.bot.send_message(
         chat_id=update.effective_chat.id,
