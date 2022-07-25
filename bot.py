@@ -68,15 +68,15 @@ def handle_menu(context: CallbackContext, update: Update):
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    context.bot.delete_message(
-        chat_id=update.effective_chat.id,
-        message_id=query.message.message_id
-    )
     context.bot.send_photo(
         chat_id=update.effective_chat.id,
         photo=img_link,
         caption=text,
         reply_markup=reply_markup
+    )
+    context.bot.delete_message(
+        chat_id=update.effective_chat.id,
+        message_id=query.message.message_id
     )
     return 'HANDLE_DESCRIPTION'
 
@@ -107,14 +107,14 @@ def handle_description(context: CallbackContext, update: Update):
             ]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        context.bot.delete_message(
-            chat_id=update.effective_chat.id,
-            message_id=query.message.message_id
-        )
         context.bot.send_message(
             chat_id=update.effective_chat.id,
             text=f'{quantity} kg {name} added to cart',
             reply_markup=reply_markup
+        )
+        context.bot.delete_message(
+            chat_id=update.effective_chat.id,
+            message_id=query.message.message_id
         )
         return 'HANDLE_DESCRIPTION'
 
@@ -146,14 +146,14 @@ def show_cart(context: CallbackContext, update: Update):
     reply_markup = InlineKeyboardMarkup(keyboard)
     cart_text += f'Total: {get_total_cost_cart(access_token, user_id)}'
     context.user_data['cart'] = cart_text
-    context.bot.delete_message(
-        chat_id=update.effective_chat.id,
-        message_id=query.message.message_id
-    )
     context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=cart_text,
         reply_markup=reply_markup
+    )
+    context.bot.delete_message(
+        chat_id=update.effective_chat.id,
+        message_id=query.message.message_id
     )
     return 'HANDLE_CART'
 
@@ -189,14 +189,14 @@ def handle_cart(context: CallbackContext, update: Update):
             ]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        context.bot.delete_message(
-            chat_id=update.effective_chat.id,
-            message_id=query.message.message_id
-        )
         context.bot.send_message(
             chat_id=update.effective_chat.id,
             text='Fish removed from cart',
             reply_markup=reply_markup
+        )
+        context.bot.delete_message(
+            chat_id=update.effective_chat.id,
+            message_id=query.message.message_id
         )
         return 'HANDLE_MENU'
 
